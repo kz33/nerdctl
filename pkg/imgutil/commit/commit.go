@@ -25,7 +25,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/fs"
 	"os"
 	"path"
 	"runtime"
@@ -568,16 +567,16 @@ func WithTempMount(ctx context.Context, mounts, exclude []mount.Mount, excludeDi
 		return fmt.Errorf("failed to mount %s: %w", root, uerr)
 	}
 	if len(exclude) > 0 {
-		if uerr = os.MkdirAll(excludeDir, fs.ModeDir); uerr != nil {
+		if uerr = os.MkdirAll(excludeDir, os.ModePerm); uerr != nil {
 			return fmt.Errorf("failed to create exclude dir %s: %w", excludeDir, uerr)
 		}
 		defer func() {
-			if uerr = os.Remove(excludeDir); uerr != nil {
+			if uerr = os.RemoveAll(excludeDir); uerr != nil {
 				log.G(ctx).WithError(uerr).WithField("dir", root).Error(fmt.Errorf("failed to remove exclude dir %s: %w", excludeDir, uerr))
 			}
 		}()
 		for _, em := range exclude {
-			if uerr = os.MkdirAll(em.Source, fs.ModeDir); uerr != nil {
+			if uerr = os.MkdirAll(em.Source, os.ModePerm); uerr != nil {
 				return fmt.Errorf("failed to create exclude rootfs dir %s: %w", em.Source, uerr)
 			}
 			excludeRootfsDir := strings.ReplaceAll(em.Source, excludeDir, root)
@@ -596,7 +595,6 @@ func WithTempMount(ctx context.Context, mounts, exclude []mount.Mount, excludeDi
 			}
 		}
 	}
-
 	if err := f(root); err != nil {
 		return fmt.Errorf("mount callback failed on %s: %w", root, err)
 	}
